@@ -1,0 +1,22 @@
+{
+  "name": "telegraf-rich-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot built with Telegraf that sends rich messages (HTML formatting, inline keyboards, media, albums).",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "dotenv": "17.4.2",
+    "telegraf": "4.16.3"
+  },
+  "devDependencies": {
+    "eslint": "9.17.0"
+  }
+}
