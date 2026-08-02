@@ -18,10 +18,6 @@ import crypto from "crypto";
 import { fileURLToPath } from 'url'; 
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);
-const buffer = Buffer.from(await res.arrayBuffer());    
-const { fileTypeFromBuffer } = await import("file-type");  
-const fileType = await fileTypeFromBuffer(buffer);  
-const tmpPath = path.join(os.tmpdir(), `brat-${Date.now()}.${fileType.ext}`);
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const gameData = new Map();
