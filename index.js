@@ -19,6 +19,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);
 
+
 const bot = new Telegraf(process.env.BOT_TOKEN)
 const gameData = new Map();
 
@@ -1170,51 +1171,52 @@ bot.command("restart", async (ctx) => {
   }
 });
 
-bot.command("pinterest", async ctx => {
-  const query = ctx.message.text.split(' ').slice(1).join(' ');
-
-  if (!query) {
-    return ctx.reply('⚠️ Harap masukkan kata kunci pencarian!\n\nContoh: /pinterest ambatukam`', {
-      parse_mode: 'Markdown'
-    });
-  }
-
-  const waitMsg = await ctx.reply(`🔍 Mencari gambar Pinterest untuk: *${query}*...`, {
-    parse_mode: 'Markdown'
-  });
-
-  try {
-    const apiEndpoint = `https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(query)}`;
-    const response = await axios.get(apiEndpoint);
-
-    if (!response.data || !response.data.status || !response.data.data.length) {
-      await ctx.telegram.deleteMessage(ctx.chat.id, waitMsg.message_id);
-      return ctx.reply('❌ Gambar tidak ditemukan untuk kata kunci tersebut.');
-    }
-
-    const results = response.data.data;
-
-    // Mengambil hasil PERTAMA (index 0) secara berurutan, bukan acak
-    const firstImage = results[0];
-    const imageUrl = firstImage.images || firstImage.url || firstImage;
-
-    await ctx.telegram.deleteMessage(ctx.chat.id, waitMsg.message_id);
-
-    await ctx.replyWithPhoto(imageUrl, {
-      caption: `🖼 *Hasil Utama Pinterest*\n📌 Kata Kunci: _${query}_`,
-      parse_mode: 'Markdown'
-    });
-
-  } catch (error) {
-    console.error('Error searching Pinterest:', error.message);
-    try {
-      await ctx.telegram.deleteMessage(ctx.chat.id, waitMsg.message_id);
-    } catch (e) {}
-
-    ctx.reply('❌ Terjadi kesalahan saat mengambil gambar.');
-  }
-
-});
+const pinterestHandler = async (ctx) => {  
+  try {  
+    const query = ctx.message.text.split(" ").slice(1).join(" ").trim();  
+  
+    // 1. Kalau kosong, kasih tau formatnya  
+    if (!query) {  
+      return ctx.reply("🔍 Kirim kata kuncinya juga.\n\nContoh:\n/pinterest kucing lucu");  
+    }  
+  
+    // 2. Kasih tau lagi diproses  
+    await ctx.reply("⏳ Lagi nyari di Pinterest...");  
+  
+    // 3. Panggil API pinterest search  
+    // CATATAN: endpoint contoh, verifikasi masih hidup / ganti kalau mati  
+    const { data } = await axios.get(  
+      `https://api.ryzendesu.vip/api/search/pinterest?query=${encodeURIComponent(query)}`  
+    );  
+  
+    // struktur respon beda-beda tiap API, sesuaikan field-nya  
+    const results = data?.data || data?.result || [];  
+    if (!results.length) {  
+      return ctx.reply("⚠️ Gak nemu hasil buat kata kunci itu.");  
+    }  
+  
+    // 4. Ambil beberapa gambar (max 5 biar gak spam) lalu kirim sekaligus  
+    const images = results  
+      .map((item) => (typeof item === "string" ? item : item.url || item.image || item.images_url))  
+      .filter((u) => typeof u === "string")  
+      .slice(0, 5);  
+  
+    if (!images.length) {  
+      return ctx.reply("⚠️ Hasilnya gak ada gambar yang valid.");  
+    }  
+  
+    const mediaGroup = images.map((url) => ({ type: "photo", media: url }));  
+    await ctx.replyWithMediaGroup(mediaGroup);  
+  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply("⚠️ Gagal nyari di Pinterest, coba lagi.");  
+  }  
+};  
+  
+// daftar command + alias  
+bot.command('pinterest', pinterestHandler);  
+bot.command('pin', pinterestHandler);
 
 bot.command('qc', async (ctx) => {
     const text = ctx.message.text.split(' ').slice(1).join(' ');
@@ -1474,39 +1476,25 @@ bot.action('tools', (ctx) =>
 )
 
 //======Console launch=====\\
-bot.launch()
-bot.on("message", async (ctx) => {
-  const msg = ctx.message;
-  const vpsInfo = getVpsInfo();
-  process.stdout.clearLine(0);
-  process.stdout.cursorTo(0);
-   let body = msg.text ||
-    msg.caption ||
-    msg.document?.file_name ||
-    msg.video?.file_name ||
-    msg.audio?.file_name ||
-    (msg.voice && '[Voice Message]') ||
-    (msg.sticker && '[Sticker]') ||
-    (msg.animation && '[GIF]') ||
-    (msg.photo && '[Photo]') ||
-    (msg.contact && '[Contact]') ||
-    (msg.location && '[Location]') ||
-    (msg.venue && '[Venue]') ||
-    (msg.poll && '[Poll]') ||
-    "";
-  const prefix = global.prefix || "/"; 
-  const user = ctx.from;
-  const nama = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-  const username = user.username ? `@${user.username}` : '(tanpa username)';
-  const waktu = new Date().toLocaleTimeString();
-  console.log(chalk.cyan.bold("=================================="));
-  console.log(`⏰ ${waktu}`);
-  console.log(chalk.blueBright(`🆔 Id : ${user.id}`));
-  console.log(chalk.bold.green(`📩 Dari     : ${username} (${nama})`));
-  console.log(chalk.cyan(`📝 Pesan    : ${msg.text}`));
-  console.log(chalk.red.bold("=================================="));
-
+bot.use(async (ctx, next) => {  
+  const msg = ctx.message;  
+  if (msg) {  
+    const user = ctx.from;  
+    const nama = `${user.first_name || ''} ${user.last_name || ''}`.trim();  
+    const username = user.username ? `@${user.username}` : '(tanpa username)';  
+    const waktu = new Date().toLocaleTimeString();  
+    const isi = msg.text || msg.caption || '[media]';  
+  
+    console.log(chalk.cyan.bold("=================================="));  
+    console.log(`⏰ ${waktu}`);  
+    console.log(chalk.blueBright(`🆔 Id      : ${user.id}`));  
+    console.log(chalk.bold.green(`📩 Dari    : ${username} (${nama})`));  
+    console.log(chalk.cyan(`📝 Pesan   : ${isi}`));  
+    console.log(chalk.red.bold("=================================="));  
+  }  
+  await next(); // WAJIB, biar command di bawahnya tetap kejalanin  
 });
+bot.launch()
 
 console.clear();
 const checkInterval = 2 * 60 * 5000; // Cek setiap 5 menit
