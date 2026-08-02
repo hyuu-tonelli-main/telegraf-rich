@@ -701,20 +701,7 @@ bot.action("back", async (ctx) => {
 });
 
 
-//=======All Fitur========//
-bot.command('fitur', async (ctx) => {
- try {
-
-
-
-
-
-  } catch (err) {
-    console.error(err);
-    ctx.reply("⚠️ Failed.");
-  }
-
-});
+//=======All Fitur========/
 
 bot.command('dl', downloadHandler);
 
