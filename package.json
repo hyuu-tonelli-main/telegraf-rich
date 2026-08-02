@@ -1,0 +1,31 @@
+{
+  "name": "telekaf-rich-bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node-dev index.js"
+  },
+  "dependencies": {
+        "@octokit/rest": "latest",
+        "axios": "^1.6.0",
+        "body-parser": "^1.20.3",
+        "chalk": "^4.1.2",
+        "node-dev": "^8.0.0",
+        "path": "^0.12.7",
+        "form-data": "^4.0.0",
+        "crypto": "latest",
+        "fs": "^0.0.2",
+        "moment-timezone": "latest",
+        "ora": "^3.4.0",
+        "pino": "^9.5.0",
+        "readline-sync": "^1.4.10",
+        "telegraf": "^4.16.3",
+        "dotenv": "^16.4.5",
+        "@icanseeuanywhere/telekaf": "^4.16.8"
+  },
+   "engines": {
+      "node": "20.x"
+    }
+} 
