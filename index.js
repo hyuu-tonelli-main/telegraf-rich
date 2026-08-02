@@ -21,6 +21,26 @@ const __dirname = path.dirname(__filename);
 
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
+
+bot.use(async (ctx, next) => {  
+  const msg = ctx.message;  
+  if (msg) {  
+    const user = ctx.from;  
+    const nama = `${user.first_name || ''} ${user.last_name || ''}`.trim();  
+    const username = user.username ? `@${user.username}` : '(tanpa username)';  
+    const waktu = new Date().toLocaleTimeString();  
+    const isi = msg.text || msg.caption || '[media]';  
+  
+    console.log(chalk.cyan.bold("=================================="));  
+    console.log(`⏰ ${waktu}`);  
+    console.log(chalk.blueBright(`🆔 Id      : ${user.id}`));  
+    console.log(chalk.bold.green(`📩 Dari    : ${username} (${nama})`));  
+    console.log(chalk.cyan(`📝 Pesan   : ${isi}`));  
+    console.log(chalk.red.bold("=================================="));  
+  }  
+  await next(); // WAJIB, biar command di bawahnya tetap kejalanin  
+});
+
 const gameData = new Map();
 
 const getUptime = () => {
@@ -1476,32 +1496,9 @@ bot.action('tools', (ctx) =>
 )
 
 //======Console launch=====\\
-bot.use(async (ctx, next) => {  
-  const msg = ctx.message;  
-  if (msg) {  
-    const user = ctx.from;  
-    const nama = `${user.first_name || ''} ${user.last_name || ''}`.trim();  
-    const username = user.username ? `@${user.username}` : '(tanpa username)';  
-    const waktu = new Date().toLocaleTimeString();  
-    const isi = msg.text || msg.caption || '[media]';  
-  
-    console.log(chalk.cyan.bold("=================================="));  
-    console.log(`⏰ ${waktu}`);  
-    console.log(chalk.blueBright(`🆔 Id      : ${user.id}`));  
-    console.log(chalk.bold.green(`📩 Dari    : ${username} (${nama})`));  
-    console.log(chalk.cyan(`📝 Pesan   : ${isi}`));  
-    console.log(chalk.red.bold("=================================="));  
-  }  
-  await next(); // WAJIB, biar command di bawahnya tetap kejalanin  
-});
-bot.launch()
 
+bot.launch()
 console.clear();
-const checkInterval = 2 * 60 * 5000; // Cek setiap 5 menit
-  setInterval(() => {
-      console.log(`\n[AUTO-CHECK] Memulai pengecekan CPU server...`);
-      console.log(`Hasil CPU server ${vpsInfo.cpuCores}`)
-  }, checkInterval);
 console.log(chalk.bold.blue(`
 -- ░█▀▀░█░█░█▀▀░█▀█░█▀█░▀▀█░▀█▀ --
 -- ░▀▀█░█░█░█░█░█▀█░█░█░▄▀░░░█░ --
@@ -1512,6 +1509,12 @@ console.log(chalk.bold.blue(`
     console.log(chalk.blue("Version: New Version"));
     console.log(chalk.bold.red("Status: ") + chalk.bold.green("Online\n\n"));
     console.log(chalk.white.bold('🚀 Bot berjalan...'));
+    (async () => {  
+  console.log(`\n[AUTO-CHECK] Memulai pengecekan CPU server...`);  
+  const cpu = await getCpuUsage();        // fungsi yang udah ada di baris 90  
+  const totalCore = os.cpus().length;     // jumlah core  
+  console.log(chalk.green(`Hasil CPU server: ${cpu}% (dari ${totalCore} core)`));  
+})();
     
 
 process.once('SIGINT', () => bot.stop('SIGINT'))
