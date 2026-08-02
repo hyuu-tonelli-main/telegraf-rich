@@ -15,10 +15,9 @@ import os from 'os';
 import axios from "axios";
 import readline from "readline";
 import crypto from "crypto";
-import { fileURLToPath } from 'url';  
+import { fileURLToPath } from 'url'; 
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);
-const res = await fetch(imageUrl);  
 const buffer = Buffer.from(await res.arrayBuffer());    
 const { fileTypeFromBuffer } = await import("file-type");  
 const fileType = await fileTypeFromBuffer(buffer);  
@@ -434,7 +433,7 @@ bot.start(async (ctx) => {
    .divider()
    msg.heading(3, 'All Menu')
    msg.details(
-   HTML.bold( 'Tools menu (6)'),                 // <- dari (5) jadi (6)  
+   HTML.bold( 'Tools menu (5)'),                 // <- dari (5) jadi (6)  
    '<table bordered striped>' +  
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +  
       '<tr><td>/gempa</td><td align="center">Berita gempa BMKG</td></tr>' +  
@@ -449,7 +448,6 @@ bot.start(async (ctx) => {
    HTML.bold( 'Fun menu (11)'),
    '<table bordered striped>' +
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +
-      '<tr><td>/brat</td><td align="center">Membuat stiker teks anomali</td></tr>' +
       '<tr><td>/pinterest</td><td align="center">Cari foto</td></tr>' +
       '<tr><td>/qc</td><td align="center">Teks jadi stiker quote</td></tr>' +
       '<tr><td>/play</td><td align="center">Mencari lagu</td></tr>' +    
@@ -623,7 +621,7 @@ bot.action("back", async (ctx) => {
    .divider()
    msg.heading(3, 'All Menu')
    msg.details(
-   HTML.bold( 'Tools menu (6)'),                 // <- dari (5) jadi (6)  
+   HTML.bold( 'Tools menu (5)'),                 // <- dari (5) jadi (6)  
    '<table bordered striped>' +  
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +  
       '<tr><td>/gempa</td><td align="center">Berita gempa BMKG</td></tr>' +  
@@ -638,7 +636,6 @@ bot.action("back", async (ctx) => {
    HTML.bold( 'Fun menu (11)'),
    '<table bordered striped>' +
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +
-      '<tr><td>/brat</td><td align="center">Membuat stiker teks anomali</td></tr>' +
       '<tr><td>/pinterest</td><td align="center">Cari foto</td></tr>' +
       '<tr><td>/qc</td><td align="center">Teks jadi stiker quote</td></tr>' +
       '<tr><td>/play</td><td align="center">Mencari lagu</td></tr>' +    
@@ -1177,43 +1174,6 @@ bot.command("restart", async (ctx) => {
   }
 });
 
-bot.command("brat", async (ctx) => {  
-  const text = ctx.message.text?.split(" ").slice(1).join(" ");  
-  if (!text) {  
-    return ctx.reply("⚠️ Contoh penggunaan:\n/brat Hello World!");  
-  }  
-  
-  try {  
-    const imageUrl = `https://api-simplebot.vercel.app/imagecreator/brat?apikey=free&text=${encodeURIComponent(text)}`;  
-    const res = await fetch(imageUrl);  
-  
-    // cek dulu API-nya balikin gambar apa bukan  
-    const ctype = res.headers.get("content-type") || "";  
-    if (!ctype.startsWith("image")) {  
-      console.error("API bukan balikin gambar:", ctype);  
-      return ctx.reply("❌ API brat lagi bermasalah / gak balikin gambar.");  
-    }  
-  
-    const buffer = Buffer.from(await res.arrayBuffer());   // <- fix #1  
-  
-    const { fileTypeFromBuffer } = await import("file-type"); // <- butuh npm i file-type  
-    const fileType = await fileTypeFromBuffer(buffer);  
-    if (!fileType) throw new Error("Gagal deteksi tipe file");  
-  
-    const tmpPath = path.join(os.tmpdir(), `brat-${Date.now()}.${fileType.ext}`); // <- fix #3  
-  
-    fs.writeFileSync(tmpPath, buffer);  
-  
-    // tes pakai foto dulu biar keliatan teksnya; kalau udah oke ganti ke sticker  
-    await ctx.replyWithPhoto({ source: tmpPath });  
-    // await ctx.replyWithSticker({ source: tmpPath });  
-  
-    fs.unlinkSync(tmpPath);  
-  } catch (err) {  
-    console.error("❌ Gagal kirim stiker brat:", err);  
-    ctx.reply("❌ Error pas buat stikernya bre.");  
-  }  
-});
 bot.command("pinterest", async ctx => {
   const query = ctx.message.text.split(' ').slice(1).join(' ');
 
