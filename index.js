@@ -135,6 +135,75 @@ function cpuAverage() {
 }
 
 
+
+//==handler kode wilayah
+// cache biar gak narik ulang tiap kali dipanggil  
+let cacheRegencies = null;  
+  
+async function loadAllRegencies() {  
+  if (cacheRegencies) return cacheRegencies;  
+  
+  // 1. ambil semua provinsi dulu  
+  const resProv = await fetch("https://api.kodewilayah.web.id/provinces");  
+  const provinces = await resProv.json();  
+  const listProv = Array.isArray(provinces) ? provinces : provinces.data;  
+  
+  // 2. ambil kab/kota dari tiap provinsi  
+  const all = [];  
+  for (const p of listProv) {  
+    const kodeProv = p.code || p.kode || p.id;  
+    const namaProv = p.name || p.nama;  
+    try {  
+      const res = await fetch(`https://api.kodewilayah.web.id/regencies/${kodeProv}`);  
+      const data = await res.json();  
+      const list = Array.isArray(data) ? data : data.data;  
+      for (const r of list) {  
+        all.push({  
+          kode: r.code || r.kode || r.id,  
+          nama: r.name || r.nama,  
+          provinsi: namaProv,  
+        });  
+      }  
+    } catch (_) { /* skip provinsi yang gagal */ }  
+  }  
+  
+  cacheRegencies = all;  
+  return all;  
+}  
+  
+const kodeWilayahHandler = async (ctx) => {  
+  try {  
+    const q = ctx.message.text.split(" ").slice(1).join(" ").trim().toLowerCase();  
+  
+    // kalau kosong, kasih tau formatnya  
+    if (!q) {  
+      return ctx.reply("🔎 Ketik nama kota/kabupatennya.\n\nContoh:\n/kodewilayah bandung");  
+    }  
+  
+    await ctx.reply("⏳ Lagi nyari kode wilayah...");  
+  
+    // load semua kab/kota (cached), lalu filter pakai nama  
+    const semua = await loadAllRegencies();  
+    const hasil = semua.filter(w => w.nama && w.nama.toLowerCase().includes(q)).slice(0, 10);  
+  
+    if (hasil.length === 0) {  
+      return ctx.reply(`❌ Gak ketemu wilayah "${q}". Coba nama lain.`);  
+    }  
+  
+    // format hasil  
+    let teks = `🗺️ Hasil buat "${q}":\n\n`;  
+    for (const w of hasil) {  
+      teks += `📍 ${w.nama} (${w.provinsi})\n   Kode: ${w.kode}\n\n`;  
+    }  
+    await ctx.reply(teks);  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply("⚠️ Gagal cari kode wilayah, coba lagi.");  
+  }  
+};  
+  
+
+
 //handler dl
 const downloadHandler = async (ctx) => {  
   try {  
@@ -715,6 +784,63 @@ bot.command('fitur', async (ctx) => {
   }
 
 });
+bot.command("kodewilayah", kodeWilayahHandler);  
+bot.command("kodew", kodeWilayahHandler);
+bot.command('cuaca', async (ctx) => {  
+  try {  
+    const kode = ctx.message.text.split(" ").slice(1).join(" ").trim();  
+  
+    // 1. Kalau kosong, kasih tau formatnya  
+    if (!kode) {  
+      return ctx.reply(  
+        "🌦️ Kirim KODE WILAYAH (adm4) BMKG.\n\n" +  
+        "Contoh:\n/cuaca 31.71.03.1001\n\n" +  
+        "Cari kode wilayah lu di:\nhttps://kodewilayah.id"  
+      );  
+    }  
+  
+    // 2. Panggil API BMKG (sama pola kayak /gempa: fetch -> res.json())  
+    const res = await fetch(  
+      `https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=${encodeURIComponent(kode)}`  
+    );  
+    const data = await res.json();  
+  
+    // 3. Ambil lokasi + prakiraan pertama  
+    const lokasi = data?.lokasi;  
+    const cuacaList = data?.data?.[0]?.cuaca?.flat();   // array prakiraan per jam  
+    if (!lokasi || !cuacaList || cuacaList.length === 0) {  
+      return ctx.reply("⚠️ Data cuaca gak ketemu. Cek lagi kode wilayahnya (adm4).");  
+    }  
+  
+    const now = cuacaList[0];   // prakiraan terdekat  
+  
+    // 4. Tampilin pakai HTML table (sama kayak /gempa)  
+    const msg = new HTML();  
+    msg.heading(1, `🌦️ Prakiraan Cuaca (BMKG)`);  
+    msg.table(  
+      [  
+        ['Informasi Cuaca'],  
+        ['Wilayah',    `${lokasi.desa}, ${lokasi.kecamatan}`],  
+        ['Kota/Kab',   `${lokasi.kotkab}, ${lokasi.provinsi}`],  
+        ['Waktu',      `${now.local_datetime}`],  
+        ['Cuaca',      `${now.weather_desc}`],  
+        ['Suhu',       `${now.t}°C`],  
+        ['Kelembapan', `${now.hu}%`],  
+        ['Angin',      `${now.ws} km/j (${now.wd})`],  
+        ['Jarak Pandang', `${now.vs_text || '-'}`]  
+      ],  
+      { bordered: true, striped: true, hasHeader: true }  
+    )  
+    .pullQuote(HTML.italic('"Powered by Suganzi."'), 'Gallagher')  
+    .build();  
+  
+    await ctx.sendRichMessage(msg.build());  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply("⚠️ Gagal ambil data cuaca BMKG.");  
+  }  
+});
+
 
 bot.command('dl', downloadHandler);
 
