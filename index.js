@@ -230,7 +230,7 @@ const processImageUpload = async (ctx, fileUrl) => {
 
       if (uploadResponse.data && uploadResponse.data.image && uploadResponse.data.image.url) {
         const fileUrl = uploadResponse.data.image.url;
-        ctx.reply(`<b><mark>Nih link fotonya bang</mark></b> : \n${fileUrl}`);
+        ctx.reply(`Nih link fotonya bang : \n${fileUrl}`);
       } else {
         ctx.reply('An unexpected error occured during uploading your image. Kindly Wait a Moment. If the issue still persist, Please contact Developer!');
       } fs.unlinkSync(tempPath);
@@ -701,7 +701,20 @@ bot.action("back", async (ctx) => {
 });
 
 
-//=======All Fitur========/
+//=======All Fitur========//
+bot.command('fitur', async (ctx) => {
+ try {
+
+
+
+
+
+  } catch (err) {
+    console.error(err);
+    ctx.reply("⚠️ Failed.");
+  }
+
+});
 
 bot.command('dl', downloadHandler);
 
