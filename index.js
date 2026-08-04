@@ -276,6 +276,51 @@ const downloadHandler = async (ctx) => {
     ctx.reply("⚠️ Gagal download, cek link atau coba lagi.");  
   }  
 };  
+
+
+//handle tiktok
+const tiktokHandler = async (ctx) => {  
+  try {  
+    const url = ctx.message.text.split(" ").slice(1).join(" ").trim();  
+  
+    // 1. Kalau kosong, kasih tau formatnya  
+    if (!url) {  
+      return ctx.reply("📥 Kirim link TikTok-nya juga.\n\nContoh:\n/tiktok https://vt.tiktok.com/xxxx");  
+    }  
+  
+    // 2. Validasi link TikTok  
+    if (!url.includes("tiktok.com")) {  
+      return ctx.reply("⚠️ Itu bukan link TikTok. Kirim link tiktok.com ya.");  
+    }  
+  
+    await ctx.reply("⏳ Sedang memproses...");  
+  
+    // 3. Panggil API flowfalcon  
+    const { data } = await axios.get(  
+      `https://flowfalcon.dpdns.org/download/tiktok?url=${encodeURIComponent(url)}`  
+    );  
+  
+    // 4. Ambil field video + caption (defensif, sesuaikan setelah cek JSON asli)  
+    const r        = data?.result || data?.data || data;  
+    const videoUrl = r?.video || r?.play || r?.url || r?.hdplay;  
+    const caption  = r?.title || r?.caption || r?.desc || r?.description || "";  
+  
+    if (!videoUrl) throw new Error("Video TikTok tidak ketemu di respon API");  
+  
+    // 5. Kirim video + caption  
+    await ctx.replyWithVideo(  
+      { url: videoUrl },  
+      { caption: caption ? `📝 ${caption}` : "✅ Selesai" }  
+    );  
+  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply("⚠️ Gagal download:\n" + err.message);  
+  }  
+};  
+  
+bot.command('tiktok', tiktokHandler);  
+bot.command('tt', tiktokHandler); // alias
   
 // Handle tourl
 const ApiKey = "6d207e02198a847aa98d0a2a901485a5";
