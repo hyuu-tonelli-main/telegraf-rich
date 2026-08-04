@@ -18,9 +18,11 @@ import crypto from "crypto";
 import { fileURLToPath } from 'url'; 
 const __filename = fileURLToPath(import.meta.url);  
 const __dirname = path.dirname(__filename);
-
+const startTime = Math.floor(Date.now() / 1000);
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
+
+
 
 bot.use(async (ctx, next) => {  
   const msg = ctx.message;  
@@ -1666,6 +1668,24 @@ bot.action('tools', (ctx) =>
   ctx.answerCbQuery('Tools clicked')
 )
 
+// fungsi cek server (CPU + memori)  
+async function cekServer() {  
+  const cpu = await getCpuUsage();  
+  const totalCore = os.cpus().length;  
+  
+  const totalMem = os.totalmem();  
+  const freeMem  = os.freemem();  
+  const usedMem  = totalMem - freeMem;  
+  const persenMem = Math.round((usedMem / totalMem) * 100);  
+  
+  console.log(chalk.yellow.bold("====== [AUTO-CHECK SERVER] ======"));  
+  console.log(chalk.cyan(`⏰ ${new Date().toLocaleTimeString()}`));  
+  console.log(chalk.green(`🖥️  CPU    : ${cpu}% (dari ${totalCore} core)`));  
+  console.log(chalk.green(`🧠 Memori : ${formatBytes(usedMem)} / ${formatBytes(totalMem)} (${persenMem}%)`));  
+  console.log(chalk.yellow.bold("================================="));  
+}  
+  
+
 //======Console launch=====\\
 
 bot.launch()
@@ -1680,12 +1700,11 @@ console.log(chalk.bold.blue(`
     console.log(chalk.blue("Version: New Version"));
     console.log(chalk.bold.red("Status: ") + chalk.bold.green("Online\n\n"));
     console.log(chalk.white.bold('🚀 Bot berjalan...'));
-    (async () => {  
-  console.log(`\n[AUTO-CHECK] Memulai pengecekan CPU server...`);  
-  const cpu = await getCpuUsage();        // fungsi yang udah ada di baris 90  
-  const totalCore = os.cpus().length;     // jumlah core  
-  console.log(chalk.green(`Hasil CPU server: ${cpu}% (dari ${totalCore} core)`));  
-})();
+  // fungsi cek server (CPU + memori)  
+// jalan sekali pas start, terus ulang tiap 5 menit  
+cekServer();  
+setInterval(cekServer, 5 * 60 * 1000); // 5 menit = 300000 ms
+  
     
 
 process.once('SIGINT', () => bot.stop('SIGINT'))
