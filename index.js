@@ -1684,11 +1684,49 @@ async function cekServer() {
   console.log(chalk.green(`🧠 Memori : ${formatBytes(usedMem)} / ${formatBytes(totalMem)} (${persenMem}%)`));  
   console.log(chalk.yellow.bold("================================="));  
 }  
+
+const loadingBar = async (label = "Loading") => {  
+  const warna = [chalk.red, chalk.yellow, chalk.green, chalk.cyan, chalk.blue, chalk.magenta];  
+  const total = 20; // panjang bar  
+  for (let i = 0; i <= total; i++) {  
+    const persen = Math.round((i / total) * 100);  
+    let bar = "";  
+    for (let j = 0; j < total; j++) {  
+      // kotak keisi = warna gantian, kotak kosong = abu-abu  
+      bar += j < i ? warna[j % warna.length]("█") : chalk.gray("░");  
+    }  
+    process.stdout.write(`\r${label} ${bar} ${persen}%`);  
+    await new Promise(r => setTimeout(r, 80));  
+  }  
+  process.stdout.write("\n"); // pindah baris pas selesai  
+};
+
+//======Console launch=====\\  
   
+(async () => {  
+  console.clear();  
+  
+  await loadingBar("Loading");   // <- teks netral, bukan "Menyalakan bot"  
+  
+  bot.launch();  
+  
+  console.log(chalk.bold.blue(`  
+-- ░█▀▀░█░█░█▀▀░█▀█░█▀█░▀▀█░▀█▀ --  
+-- ░▀▀█░█░█░█░█░█▀█░█░█░▄▀░░░█░ --  
+-- ░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀ --  
+`));  
+  console.log(chalk.magentaBright("Wecome To Bot Rich Message Special "));  
+  console.log(chalk.cyan("Developer: @suganzi"));  
+  console.log(chalk.blue("Version: New Version"));  
+  console.log(chalk.bold.red("Status: ") + chalk.bold.green("Online\n\n"));  
+  console.log(chalk.white.bold('🚀 Bot berjalan...'));  
+  cekServer();  
+  setInterval(cekServer, 1 * 60 * 1000);
+})();
 
-//======Console launch=====\\
 
-bot.launch()
+
+/*bot.launch()
 console.clear();
 console.log(chalk.bold.blue(`
 -- ░█▀▀░█░█░█▀▀░█▀█░█▀█░▀▀█░▀█▀ --
@@ -1701,9 +1739,8 @@ console.log(chalk.bold.blue(`
     console.log(chalk.bold.red("Status: ") + chalk.bold.green("Online\n\n"));
     console.log(chalk.white.bold('🚀 Bot berjalan...'));
   // fungsi cek server (CPU + memori)  
-// jalan sekali pas start, terus ulang tiap 5 menit  
-cekServer();  
-setInterval(cekServer, 5 * 60 * 1000); // 5 menit = 300000 ms
+// jalan sekali pas start, terus ulang tiap 1 menit  
+ // 1 menit = 300000 ms*/
   
     
 
