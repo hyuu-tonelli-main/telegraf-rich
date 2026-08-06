@@ -5,6 +5,7 @@ const { RichMarkdownBuilder : MD } = RichMessage
 const { RichHTMLBuilder: HTML } = RichMessage
 import fs from "fs";
 import path from "path";
+import 'moment/locale/id.js';   // taruh deket import lain  
 import moment from "moment-timezone";
 import ora from "ora";
 import { performance } from 'perf_hooks';
@@ -20,7 +21,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const startTime = Math.floor(Date.now() / 1000);
 
+
 const bot = new Telegraf(process.env.BOT_TOKEN)
+moment.locale('id');            // taruh sekali, deket const bot  
+  
 
 
 
@@ -30,20 +34,24 @@ bot.use(async (ctx, next) => {
     const user = ctx.from;  
     const nama = `${user.first_name || ''} ${user.last_name || ''}`.trim();  
     const username = user.username ? `@${user.username}` : '(tanpa username)';  
-    const waktu = new Date().toLocaleTimeString();  
+    const waktu = moment().tz("Asia/Jakarta").format("HH:mm:ss");  
     const isi = msg.text || msg.caption || '[media]';  
-  
-    console.log(chalk.cyan.bold("=================================="));  
+    console.log(chalk.bgRed.black.bold("=================================="));  
     console.log(`⏰ ${waktu}`);  
     console.log(chalk.blueBright(`🆔 Id      : ${user.id}`));  
     console.log(chalk.bold.green(`📩 Dari    : ${username} (${nama})`));  
     console.log(chalk.cyan(`📝 Pesan   : ${isi}`));  
-    console.log(chalk.red.bold("=================================="));  
+    console.log(chalk.bgRed.black.bold("=================================="));  
   }  
   await next(); // WAJIB, biar command di bawahnya tetap kejalanin  
 });
 
 const gameData = new Map();
+
+const getWaktu = () => {  
+  return moment().tz("Asia/Jakarta").format("dddd, DD MMMM YYYY HH:mm:ss");  
+  // hasil: "Selasa, 04 Agustus 2026 14:30:05"  
+};
 
 const getUptime = () => {
   const uptimeSeconds = process.uptime();
@@ -1538,114 +1546,6 @@ bot.command('qc', async (ctx) => {
 
 //===============//
 
-bot.command("rich", async (ctx) => {
-  try {
-  const msg = new HTML()
-     msg.heading(1, "Gallagher Test Rich Message codes")
- .divider()
-.paragraph( 
-HTML.bold('bold text')                 
-)         
-.paragraph(
-HTML.italic('italic text')                     
-)
-.paragraph(
-HTML.underline('underlined')              
-)
-.paragraph(
-HTML.strikethrough('crossed out')      
-)      
-.paragraph(
-HTML.spoiler('hidden until tapped')    
-)    
-.paragraph(
-HTML.code('inline code')           
-)
-.paragraph(
-HTML.marked('highlighted')        
-)         
-.paragraph(
-HTML.sub('subscript')                   
-)        
-.paragraph(
-HTML.sup('superscript')                  
-) 
-.paragraph(
-HTML.url('https://t.me', 'Telegram')     
-)
-.paragraph(
-HTML.email('hi@bot.com', 'Email us')        
-)
-.paragraph(
-HTML.phone('+6281234567', 'Call us')      
-)
-.paragraph(
-HTML.mention(123456789, 'Alice')        
-)  
-.paragraph(
-HTML.customEmoji('5368324170671202286', '👍') 
-)
-.paragraph(
-HTML.time(1647531900, 'wDT', '22:45 tomorrow')
-)
-.paragraph(
-HTML.inlineMath('E = mc^2')            
-)    
-.paragraph(
-HTML.bold(HTML.italic('bold italic'))
-)
-.paragraph(
-HTML.underline(HTML.spoiler('underlined spoiler'))
-)
-.paragraph(
-HTML.inlineMath('a^2')            
-)
-msg.raw(
-    '<table bordered striped>' +
-      '<tr><th>Name</th><th colspan="2">Details</th></tr>' +
-      '<tr><td>Alice</td><td align="center">98</td><td align="right">Pass</td></tr>' +
-    '</table>'
-  )
-   // Standard block quotation
-  .blockQuote(HTML.italic('"To be or not to be."'))
-
-  // Pull quotation with attribution (cite)
-  .pullQuote(
-    HTML.italic('"Design is not just what it looks like."'),
-    'Steve Jobs'
-  )
-
-  // Nested formatting inside quote
-  msg.blockQuote(
-    HTML.bold('Telekaf') + ' supports ' + HTML.marked('highlighted') +
-    ' and ' + HTML.spoiler('spoiler') + ' text inside quotes.'
-  )
- msg.details(
- HTML.bold( 'Tools menu (1)'),
- '<table bordered striped>' +
-      '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +
-      '<tr><td>/brat</td><td align="center">Membuat stiker teks anomali</td></tr>' +
-      '<tr><td>/ping</td><td align="center">Test response bot latency</td></tr>' +
-    '</table>',
- 
- )
-
-  // Open by default
-  msg.details(
-    HTML.bold('Fun Menu'),
-    '<ul><li>/brat</li><li>/pinterest</li><li>/ping</li></ul>',
-    /* open */ true
-  )
-
-   .build
-   await ctx.sendRichMessage(msg.build(),);
-   } catch (err) {
-    console.error(err);
-    ctx.reply("⚠️ Failed.");
-  }
-});
-
-
 
 
 
@@ -1674,74 +1574,37 @@ async function cekServer() {
   const totalCore = os.cpus().length;  
   
   const totalMem = os.totalmem();  
+  const waktu = moment().tz("Asia/Jakarta").format("HH:mm:ss");  
   const freeMem  = os.freemem();  
   const usedMem  = totalMem - freeMem;  
   const persenMem = Math.round((usedMem / totalMem) * 100);  
   
   console.log(chalk.yellow.bold("====== [AUTO-CHECK SERVER] ======"));  
-  console.log(chalk.cyan(`⏰ ${new Date().toLocaleTimeString()}`));  
+  console.log(chalk.cyan(`⏰ ${waktu}`));  
   console.log(chalk.green(`🖥️  CPU    : ${cpu}% (dari ${totalCore} core)`));  
-  console.log(chalk.green(`🧠 Memori : ${formatBytes(usedMem)} / ${formatBytes(totalMem)} (${persenMem}%)`));  
+  console.log(chalk.blue(`🧠 Memori : ${formatBytes(usedMem)} / ${formatBytes(totalMem)} (${persenMem}%)`));  
   console.log(chalk.yellow.bold("================================="));  
 }  
 
-const loadingBar = async (label = "Loading") => {  
-  const warna = [chalk.red, chalk.yellow, chalk.green, chalk.cyan, chalk.blue, chalk.magenta];  
-  const total = 20; // panjang bar  
-  for (let i = 0; i <= total; i++) {  
-    const persen = Math.round((i / total) * 100);  
-    let bar = "";  
-    for (let j = 0; j < total; j++) {  
-      // kotak keisi = warna gantian, kotak kosong = abu-abu  
-      bar += j < i ? warna[j % warna.length]("█") : chalk.gray("░");  
-    }  
-    process.stdout.write(`\r${label} ${bar} ${persen}%`);  
-    await new Promise(r => setTimeout(r, 80));  
-  }  
-  process.stdout.write("\n"); // pindah baris pas selesai  
-};
-
-//======Console launch=====\\  
-  
-(async () => {  
-  console.clear();  
-  
-  await loadingBar("Loading");   // <- teks netral, bukan "Menyalakan bot"  
-  
-  bot.launch();  
-  
-  console.log(chalk.bold.blue(`  
--- ░█▀▀░█░█░█▀▀░█▀█░█▀█░▀▀█░▀█▀ --  
--- ░▀▀█░█░█░█░█░█▀█░█░█░▄▀░░░█░ --  
--- ░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀ --  
-`));  
-  console.log(chalk.magentaBright("Wecome To Bot Rich Message Special "));  
-  console.log(chalk.cyan("Developer: @suganzi"));  
-  console.log(chalk.blue("Version: New Version"));  
-  console.log(chalk.bold.red("Status: ") + chalk.bold.green("Online\n\n"));  
-  console.log(chalk.white.bold('🚀 Bot berjalan...'));  
-  cekServer();  
-  setInterval(cekServer, 1 * 60 * 1000);
-})();
-
-
-
-/*bot.launch()
-console.clear();
-console.log(chalk.bold.blue(`
--- ░█▀▀░█░█░█▀▀░█▀█░█▀█░▀▀█░▀█▀ --
+/*-- ░█▀▀░█░█░█▀▀░█▀█░█▀█░▀▀█░▀█▀ --
 -- ░▀▀█░█░█░█░█░█▀█░█░█░▄▀░░░█░ --
--- ░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀ --
+-- ░▀▀▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀ --*/
+//======Console launch=====\\  
+bot.launch()
+console.clear();
+console.log(chalk.bgBlack.cyan(`
+-- █▀▀ █░█ █▀▀ █▀█ █▀█ ▀▀█ ▀█▀ --
+-- ▀▀█ █░█ █░█ █▀█ █░█ ▄▀    █ --
+-- ▀▀▀ ▀▀▀ ▀▀▀ ▀░▀ ▀░▀ ▀▀▀ ▀▀▀ --
 `));
-    console.log(chalk.magentaBright("Wecome To Bot Rich Message Special "));
-    console.log(chalk.cyan("Developer: @suganzi"));
-    console.log(chalk.blue("Version: New Version"));
-    console.log(chalk.bold.red("Status: ") + chalk.bold.green("Online\n\n"));
-    console.log(chalk.white.bold('🚀 Bot berjalan...'));
-  // fungsi cek server (CPU + memori)  
-// jalan sekali pas start, terus ulang tiap 1 menit  
- // 1 menit = 300000 ms*/
-  
+    console.log(chalk.bold.white("◆ ") + chalk.bold.magenta("Wecome To Bot Rich Message Special:"));
+    console.log(chalk.bold.white("├─● ") + chalk.bold.cyan("Developer : ")  + chalk.bold.white("@suganzi"));
+    console.log(chalk.bold.white("├─● ") + chalk.bold.red("Version : ")  + chalk.bold.white("New Version"));
+    console.log(chalk.bold.white("╰─● ") + chalk.bold.blue("Status : ")  + chalk.bold.white("Online\n\n"));
+    console.log(chalk.blueBright.bold('🚀 Bot berjalan...'));
+    console.log(chalk.whiteBright.bold('Powered by Suganzi'))
+cekServer();  
+setInterval(cekServer, 20 * 60 * 1000);
     
 
 process.once('SIGINT', () => bot.stop('SIGINT'))
