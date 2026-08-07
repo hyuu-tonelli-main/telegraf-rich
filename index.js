@@ -146,7 +146,90 @@ function cpuAverage() {
 
 
 
-//==handler tebakgambar 
+// ===== Converter node-telegram-bot-api -> telegraf =====  
+function convertToTelegraf(code) {  
+  let out = code;  
+  const notes = [];  
+  
+  // 1. import / require  
+  out = out.replace(/const\s+(\w+)\s*=\s*require\(['"]node-telegram-bot-api['"]\);?/g,  
+    "const { Telegraf } = require('telegraf');");  
+  out = out.replace(/import\s+(\w+)\s+from\s+['"]node-telegram-bot-api['"];?/g,  
+    "import { Telegraf } from 'telegraf';");  
+  
+  // 2. inisialisasi bot: new TelegramBot(token, { polling: true }) -> new Telegraf(token)  
+  out = out.replace(/new\s+TelegramBot\(\s*([^,)]+?)\s*(?:,\s*\{[^}]*\})?\s*\)/g,  
+    "new Telegraf($1)");  
+  
+  // 3. bot.onText(/regex/, (msg, match) => {  -> bot.hears(/regex/, (ctx) => {  
+  out = out.replace(/\.onText\(/g, ".hears(");  
+  
+  // 4. bot.on('message', (msg) => ...) tetap bot.on tapi param jadi ctx (dihandle di step 6)  
+  //    bot.on('text'/'photo'/dll) tetap sama namanya di telegraf  
+  
+  // 5. method kirim: bot.sendMessage(chatId, text, opts) -> ctx.reply(text, opts)  
+  out = out.replace(/bot\.sendMessage\(\s*[^,]+,\s*/g, "ctx.reply(");  
+  out = out.replace(/bot\.sendPhoto\(\s*[^,]+,\s*/g, "ctx.replyWithPhoto(");  
+  out = out.replace(/bot\.sendDocument\(\s*[^,]+,\s*/g, "ctx.replyWithDocument(");  
+  out = out.replace(/bot\.sendVideo\(\s*[^,]+,\s*/g, "ctx.replyWithVideo(");  
+  out = out.replace(/bot\.sendAudio\(\s*[^,]+,\s*/g, "ctx.replyWithAudio(");  
+  
+  // 6. akses data: msg.* -> ctx.*  
+  out = out.replace(/\bmsg\.chat\.id\b/g, "ctx.chat.id");  
+  out = out.replace(/\bmsg\.from\b/g, "ctx.from");  
+  out = out.replace(/\bmsg\.text\b/g, "ctx.message.text");  
+  out = out.replace(/\bmsg\.message_id\b/g, "ctx.message.message_id");  
+  
+  // 7. parameter callback (msg) / (msg, match) -> (ctx)  
+  out = out.replace(/\(\s*msg\s*,\s*match\s*\)/g, "(ctx)");  
+  out = out.replace(/\(\s*msg\s*\)/g, "(ctx)");  
+  
+  // 8. polling & launch  
+  if (/new\s+Telegraf/.test(out) && !/bot\.launch\(\)/.test(out)) {  
+    out += "\n\nbot.launch();";  
+    notes.push("Ditambahkan bot.launch() di akhir (telegraf butuh ini buat mulai).");  
+  }  
+  
+  // catatan bagian yang perlu dicek manual  
+  if (/match\[\d+\]/.test(code)) notes.push("Kode pakai match[] dari onText — di telegraf pakai ctx.match[] setelah bot.hears(regex).");  
+  if (/bot\.on\(/.test(code)) notes.push("Cek bot.on(...) — nama event telegraf: 'text','photo','document','callback_query', dll.");  
+  if (/answerCallbackQuery/.test(code)) notes.push("answerCallbackQuery -> ctx.answerCbQuery().");  
+  
+  return { out, notes };  
+}  
+  
+const convertHandler = async (ctx) => {  
+  try {  
+    // ambil kode: dari argumen /convert <kode> ATAU dari pesan yang di-reply  
+    let code = ctx.message.text.split(" ").slice(1).join(" ");  
+    if (!code && ctx.message.reply_to_message?.text) {  
+      code = ctx.message.reply_to_message.text;  
+    }  
+  
+    if (!code || !code.trim()) {  
+      return ctx.reply(  
+        "🔄 Kirim kode node-telegram-bot-api yang mau dikonversi.\n\n" +  
+        "Cara pakai:\n" +  
+        "1. Ketik: /convert <tempel kodenya di sini>\n" +  
+        "2. Atau reply pesan berisi kode, terus ketik /convert"  
+      );  
+    }  
+  
+    const { out, notes } = convertToTelegraf(code);  
+  
+    // kirim hasil kode (pakai code block markdown)  
+    await ctx.reply("```js\n" + out.slice(0, 3800) + "\n```", { parse_mode: "Markdown" });  
+  
+    // kirim catatan kalau ada  
+    if (notes.length) {  
+      await ctx.reply("⚠️ Perlu dicek manual:\n- " + notes.join("\n- "));  
+    }  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply("⚠️ Gagal konversi:\n" + err.message);  
+  }  
+};  
+  
 
 
 //handler dl
@@ -242,7 +325,7 @@ const tiktokHandler = async (ctx) => {
   
     // 3. Panggil API flowfalcon  
     const { data } = await axios.get(  
-      `https://flowfalcon.dpdns.org/download/tiktok?url=${encodeURIComponent(url)}`  
+      `"https://api.siputzx.my.id/api/d/tiktok/v2?url=${encodeURIComponent(url)}`  
     );  
   
     // 4. Ambil field video + caption (defensif, sesuaikan setelah cek JSON asli)  
@@ -448,7 +531,7 @@ bot.start(async (ctx) => {
   const DRAFT_ID = 69
   const steps = [
   "⚡ Initializing....",
-  'Reading your request...',
+  '🔅 Reading your request...',
   "📡 Connecting Telegram...",
   '❔Searching knowledge base...',
   '❕Composing answer...',
@@ -762,12 +845,14 @@ bot.action("back", async (ctx) => {
   )
 });
 
-//======== Command handler ========//
+//======== All Command Handler Singkat ========//
 bot.command('tiktok', tiktokHandler);  
 bot.command('tt', tiktokHandler); 
 bot.command('dl', downloadHandler);
 bot.command('tourl', async (ctx) => {
  ctx.reply('Silahkan kirim foto untuk menjadikan link otomatis');
+bot.command('convert', convertHandler);  
+bot.command('totelegraf', convertHandler); // alias
 });
 
 //=======All Fitur========//
@@ -845,9 +930,10 @@ bot.command('pinterest', async (ctx) => {
   
     await ctx.reply('🔎 Sedang mencari gambar...');  
   
-    const url = `https://api.siputzx.my.id/api/search/pinterest?query=${encodeURIComponent(query)}`;  
+    const url = `https://api.siputzx.my.id/api/s/pinterest?query=${encodeURIComponent(query)}`;  
     const response = await axios.get(url, {  
       headers: { 'accept': 'application/json' }  
+      
     });  
   
     const res = response.data;  
@@ -1515,7 +1601,7 @@ bot.command('kompas', async (ctx) => {
     }  
   
     // ambil 5 berita teratas biar gak kepanjangan  
-    const berita = list.slice(0, 5);  
+    const berita = list.slice(0, 3);  
   
     let pesan = '📰 *Berita Kompas Terbaru*\n\n';  
     berita.forEach((b, i) => {  
@@ -1583,6 +1669,36 @@ bot.command('qc', async (ctx) => {
     }
 });
 
+bot.command('play', async (ctx) => {  
+  try {  
+    const query = ctx.message.text.split(' ').slice(1).join(' ').trim();  
+    if (!query) {  
+      return ctx.reply('Kirim judul lagu.\n\nContoh: /spotify About You');  
+    }  
+  
+    await ctx.reply('🔎 Nyari lagu di Spotify...');  
+  
+    // VERIFIKASI endpoint & nama field-nya dulu di browser  
+    const { data } = await axios.get(  
+      `https://api.siputzx.my.id/api/s/spotify?query=${encodeURIComponent(query)}`  
+    );  
+  
+    // bungkus data biasanya di `data` / `result` — baca defensif  
+    const track = data?.data?.[0] || data?.result?.[0] || data?.data || data?.result;  
+    if (!track) return ctx.reply('❌ Lagu tidak ketemu.');  
+  
+    const audioUrl = track.download || track.url || track.audio;  
+    if (!audioUrl) return ctx.reply('❌ Link audio tidak ada di respon API.');  
+  
+    await ctx.replyWithAudio(  
+      { url: audioUrl, filename: `${track.title || query}.mp3` },  
+      { title: track.title, performer: track.artist }  
+    );  
+  } catch (err) {  
+    console.error('Error /spotify:', err);  
+    ctx.reply('🚫 Gagal mengambil lagu Spotify.');  
+  }  
+});
 
 
 
