@@ -785,6 +785,57 @@ bot.command('fitur', async (ctx) => {
 
 });
 
+bot.command('ow', async (ctx) => {  
+  try {  
+    const kota = ctx.message.text.split(" ").slice(1).join(" ").trim();  
+    if (!kota) {  
+      return ctx.reply("🌦️ Kirim nama kotanya juga.\n\nContoh:\n/ow Jakarta");  
+    }  
+  
+    await ctx.reply("⏳ Lagi ngecek cuaca...");  
+  
+    const { data } = await axios.get(  
+      "https://api.openweathermap.org/data/2.5/weather",  
+      {  
+        params: {  
+          q: kota,  
+          appid: process.env.OPENWEATHER_API_KEY,  
+          units: "metric",   // biar suhu Celsius  
+          lang: "id"         // deskripsi bahasa Indonesia  
+        }  
+      }  
+    );  
+  
+    const msg = new HTML();  
+    msg.heading(1, `🌦️ Cuaca ${data.name}, ${data.sys?.country}`);  
+    msg.table(  
+      [  
+        ['Informasi Cuaca'],  
+        ['Cuaca',       `${data.weather?.[0]?.description || '-'}`],  
+        ['Suhu',        `${data.main?.temp}°C (terasa ${data.main?.feels_like}°C)`],  
+        ['Min / Max',   `${data.main?.temp_min}°C / ${data.main?.temp_max}°C`],  
+        ['Kelembapan',  `${data.main?.humidity}%`],  
+        ['Angin',       `${data.wind?.speed} m/s`],  
+        ['Tekanan',     `${data.main?.pressure} hPa`]  
+      ],  
+      { bordered: true, striped: true, hasHeader: true }  
+    )  
+    .pullQuote(HTML.italic('"Powered by Suganzi."'), 'Gallagher')  
+    .build();  
+  
+    await ctx.sendRichMessage(msg.build());  
+  } catch (err) {  
+    console.error(err);  
+    if (err.response?.status === 404) {  
+      return ctx.reply("⚠️ Kota gak ketemu. Cek lagi ejaannya.");  
+    }  
+    if (err.response?.status === 401) {  
+      return ctx.reply("⚠️ API key OpenWeatherMap salah/belum aktif.");  
+    }  
+    ctx.reply("⚠️ Gagal ambil data cuaca.");  
+  }  
+});
+
 bot.command('pinterest', async (ctx) => {  
   try {  
     const query = ctx.message.text.split(' ').slice(1).join(' ').trim();  
@@ -1271,7 +1322,54 @@ bot.command("spamngl", async (ctx) => {
  }
 });
 
-
+bot.command('cekgempa', async (ctx) => {  
+  try {  
+    // API siputzx (bungkus datanya biasanya di dalam `data`)  
+    const { data: resp } = await axios.get(  
+      "https://api.siputzx.my.id/api/info/gempa"  
+    );  
+    const g = resp?.data || resp?.result || resp;  
+  
+    const msg = new HTML();  
+  
+    // ShakeMap: siputzx biasanya udah kasih URL gambar penuh.  
+    // Kalau field-nya cuma nama file, bungkus jadi URL BMKG dulu.  
+    const shakemapUrl = g.shakemap || g.Shakemap;  
+    if (shakemapUrl) {  
+      msg.photo(shakemapUrl);  
+    }  
+  
+    msg.heading(1, '📢 Latest Earthquake ')  
+    msg.table(  
+    [  
+      ['Informasi Gempa'],  
+      ['Tanggal',   `${g.tanggal   || g.Tanggal   || "-"}`],  
+      ['Jam',       `${g.jam       || g.Jam       || "-"}`],  
+      ['Wilayah',   `${g.wilayah   || g.Wilayah   || "-"}`],  
+      ['Magnitudo', `${g.magnitude || g.Magnitude || "-"}`],  
+      ['Potensi',   `${g.potensi   || g.Potensi   || "-"}`],  
+      ['Kedalaman', `${g.kedalaman || g.Kedalaman || "-"}`],  
+      ['Koordinat', `${g.coordinates || g.Coordinates || "-"}`],  
+      ['Dirasakan', `${g.dirasakan || g.Dirasakan || "-"}`]  
+    ],  
+    {  
+      bordered: true,  
+      striped: true,  
+      hasHeader: true  
+    }  
+    )  
+    .pullQuote(  
+      HTML.italic('"Powered by Suganzi."'),  
+      'Gallagher'  
+    )  
+    .build()  
+  
+    await ctx.sendRichMessage(msg.build());  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply('Failed');  
+  }  
+});
 
 bot.command('gempa', async (ctx) => {
     try {
@@ -1484,74 +1582,6 @@ bot.command('qc', async (ctx) => {
         ctx.reply('Terjadi kesalahan saat membuat sticker.');
     }
 });
-  bot.command('play', async (ctx) => {
-    try {
-      const query = ctx.message.text.split(' ').slice(1).join(' ');
-      if (!query) {
-        return ctx.reply('Kirim judul lagu setelah perintah.\n\nContoh: `/play akhir tak bahagia`', {
-          parse_mode: 'Markdown'
-        });
-      }
-
-      await ctx.reply('🔎 Sedang mencari lagu...');
-
-      const url = `https://api.fasturl.link/downup/ytdown-v1?name=${encodeURIComponent(query)}&format=mp3&quality=320&server=auto`;
-
-      const response = await axios.get(url, {
-        headers: {
-          'accept': 'application/json'
-        }
-      });
-
-      const res = response.data;
-
-      if (res.status !== 200 || !res.result || !res.result.media) {
-        return ctx.reply('❌ Gagal mendapatkan lagu. Coba lagi dengan judul yang berbeda.');
-      }
-
-      const {
-        title,
-        media,
-        url: ytUrl,
-        metadata,
-        author
-      } = res.result;
-
-      const thumbUrl = metadata.thumbnail;
-      const tempThumbPath = path.join(__dirname, `thumb-${Date.now()}.jpg`);
-
-      // Download thumbnail
-      const thumbRes = await fetch(thumbUrl);
-      const thumbBuffer = await thumbRes.arrayBuffer();
-      fs.writeFileSync(tempThumbPath, Buffer.from(thumbBuffer));
-
-      // Kirim info lagu
-      await ctx.replyWithPhoto(
-        { url: thumbUrl },
-        {
-          caption: `🎶 *${title}*\n👤 *${author.name}*\n🕒 *${metadata.duration}*\n📺 [Tonton di YouTube](${ytUrl})\n\nSedang mengirim audionya...`,
-          parse_mode: 'Markdown'
-        }
-      );
-
-      // Kirim audio dengan thumbnail
-      await ctx.replyWithAudio(
-        { url: media, filename: `${title}.mp3` },
-        {
-          title,
-          performer: author.name,
-          thumb: { source: tempThumbPath }
-        }
-      );
-
-      // Hapus file sementara
-      fs.unlinkSync(tempThumbPath);
-
-    } catch (err) {
-      console.error('Error /play:', err);
-      ctx.reply('🚫 Terjadi kesalahan saat mengambil lagu.');
-    }
-  });
 
 
 
