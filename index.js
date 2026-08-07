@@ -146,72 +146,7 @@ function cpuAverage() {
 
 
 
-//==handler kode wilayah
-// cache biar gak narik ulang tiap kali dipanggil  
-let cacheRegencies = null;  
-  
-async function loadAllRegencies() {  
-  if (cacheRegencies) return cacheRegencies;  
-  
-  // 1. ambil semua provinsi dulu  
-  const resProv = await fetch("https://api.kodewilayah.web.id/provinces");  
-  const provinces = await resProv.json();  
-  const listProv = Array.isArray(provinces) ? provinces : provinces.data;  
-  
-  // 2. ambil kab/kota dari tiap provinsi  
-  const all = [];  
-  for (const p of listProv) {  
-    const kodeProv = p.code || p.kode || p.id;  
-    const namaProv = p.name || p.nama;  
-    try {  
-      const res = await fetch(`https://api.kodewilayah.web.id/regencies/${kodeProv}`);  
-      const data = await res.json();  
-      const list = Array.isArray(data) ? data : data.data;  
-      for (const r of list) {  
-        all.push({  
-          kode: r.code || r.kode || r.id,  
-          nama: r.name || r.nama,  
-          provinsi: namaProv,  
-        });  
-      }  
-    } catch (_) { /* skip provinsi yang gagal */ }  
-  }  
-  
-  cacheRegencies = all;  
-  return all;  
-}  
-  
-const kodeWilayahHandler = async (ctx) => {  
-  try {  
-    const q = ctx.message.text.split(" ").slice(1).join(" ").trim().toLowerCase();  
-  
-    // kalau kosong, kasih tau formatnya  
-    if (!q) {  
-      return ctx.reply("🔎 Ketik nama kota/kabupatennya.\n\nContoh:\n/kodewilayah bandung");  
-    }  
-  
-    await ctx.reply("⏳ Lagi nyari kode wilayah...");  
-  
-    // load semua kab/kota (cached), lalu filter pakai nama  
-    const semua = await loadAllRegencies();  
-    const hasil = semua.filter(w => w.nama && w.nama.toLowerCase().includes(q)).slice(0, 10);  
-  
-    if (hasil.length === 0) {  
-      return ctx.reply(`❌ Gak ketemu wilayah "${q}". Coba nama lain.`);  
-    }  
-  
-    // format hasil  
-    let teks = `🗺️ Hasil buat "${q}":\n\n`;  
-    for (const w of hasil) {  
-      teks += `📍 ${w.nama} (${w.provinsi})\n   Kode: ${w.kode}\n\n`;  
-    }  
-    await ctx.reply(teks);  
-  } catch (err) {  
-    console.error(err);  
-    ctx.reply("⚠️ Gagal cari kode wilayah, coba lagi.");  
-  }  
-};  
-  
+//==handler tebakgambar 
 
 
 //handler dl
@@ -329,8 +264,7 @@ const tiktokHandler = async (ctx) => {
   }  
 };  
   
-bot.command('tiktok', tiktokHandler);  
-bot.command('tt', tiktokHandler); // alias
+
   
 // Handle tourl
 const ApiKey = "6d207e02198a847aa98d0a2a901485a5";
@@ -574,7 +508,7 @@ bot.start(async (ctx) => {
    .divider()
    msg.heading(3, 'All Menu')
    msg.details(
-   HTML.bold( 'Tools menu (5)'),                 // <- dari (5) jadi (6)  
+   HTML.bold( 'Tools menu (6)'),                 // <- dari (5) jadi (6)  
    '<table bordered striped>' +  
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +  
       '<tr><td>/gempa</td><td align="center">Berita gempa BMKG</td></tr>' +  
@@ -583,10 +517,11 @@ bot.start(async (ctx) => {
       '<tr><td>/restart</td><td align="center">Restart bot agar tidak delay</td></tr>' +  
       '<tr><td>/tourl</td><td align="center">Image to Url</td></tr>' +  
       '<tr><td>/dl</td><td align="center">Download TikTok, YouTube, IG</td></tr>' +  // <- baris baru  
+      '<tr><td>/cuaca</td><td align="center">Cek cuaca</td></tr>' +
     '</table>',
     )
    msg.details(
-   HTML.bold( 'Fun menu (11)'),
+   HTML.bold( 'Fun menu (12)'),
    '<table bordered striped>' +
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +
       '<tr><td>/pinterest</td><td align="center">Cari foto</td></tr>' +
@@ -599,6 +534,7 @@ bot.start(async (ctx) => {
       '<tr><td>/cekcantik</td><td align="center">Cek Cantik</td></tr>' +
       '<tr><td>/ceksabar</td><td align="center">Cek Sabar</td></tr>' +
       '<tr><td>/spamngl</td><td align="center">Spam pesan ngl anonim</td></tr>' +
+      '<tr><td>/tebakgambar</td><td align="center">Tebak gambar</td></tr>' +
       '</table>',
       )
     .pullQuote(
@@ -762,7 +698,7 @@ bot.action("back", async (ctx) => {
    .divider()
    msg.heading(3, 'All Menu')
    msg.details(
-   HTML.bold( 'Tools menu (5)'),                 // <- dari (5) jadi (6)  
+   HTML.bold( 'Tools menu (6)'),                 // <- dari (5) jadi (6)  
    '<table bordered striped>' +  
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +  
       '<tr><td>/gempa</td><td align="center">Berita gempa BMKG</td></tr>' +  
@@ -771,10 +707,11 @@ bot.action("back", async (ctx) => {
       '<tr><td>/restart</td><td align="center">Restart bot agar tidak delay</td></tr>' +  
       '<tr><td>/tourl</td><td align="center">Image to Url</td></tr>' +  
       '<tr><td>/dl</td><td align="center">Download TikTok, YouTube, IG</td></tr>' +  // <- baris baru  
+      '<tr><td>/cuaca</td><td align="center">Cek cuaca</td></tr>' +
     '</table>',
-   )
+    )
    msg.details(
-   HTML.bold( 'Fun menu (11)'),
+   HTML.bold( 'Fun menu (12)'),
    '<table bordered striped>' +
       '<tr><th>Commands</th><th colspan="2">Fungsi</th></tr>' +
       '<tr><td>/pinterest</td><td align="center">Cari foto</td></tr>' +
@@ -787,6 +724,7 @@ bot.action("back", async (ctx) => {
       '<tr><td>/cekcantik</td><td align="center">Cek Cantik</td></tr>' +
       '<tr><td>/ceksabar</td><td align="center">Cek Sabar</td></tr>' +
       '<tr><td>/spamngl</td><td align="center">Spam pesan ngl anonim</td></tr>' +
+      '<tr><td>/tebakgambar</td><td align="center">Tebak gambar</td></tr>' +
       '</table>',
       )
     .pullQuote(
@@ -824,6 +762,13 @@ bot.action("back", async (ctx) => {
   )
 });
 
+//======== Command handler ========//
+bot.command('tiktok', tiktokHandler);  
+bot.command('tt', tiktokHandler); 
+bot.command('dl', downloadHandler);
+bot.command('tourl', async (ctx) => {
+ ctx.reply('Silahkan kirim foto untuk menjadikan link otomatis');
+});
 
 //=======All Fitur========//
 bot.command('fitur', async (ctx) => {
@@ -839,8 +784,95 @@ bot.command('fitur', async (ctx) => {
   }
 
 });
-bot.command("kodewilayah", kodeWilayahHandler);  
-bot.command("kodew", kodeWilayahHandler);
+
+bot.command('pinterest', async (ctx) => {  
+  try {  
+    const query = ctx.message.text.split(' ').slice(1).join(' ').trim();  
+    if (!query) {  
+      return ctx.reply('Kirim kata kunci setelah perintah.\n\nContoh: /pinterest ambatukam');  
+    }  
+  
+    await ctx.reply('🔎 Sedang mencari gambar...');  
+  
+    const url = `https://api.siputzx.my.id/api/search/pinterest?query=${encodeURIComponent(query)}`;  
+    const response = await axios.get(url, {  
+      headers: { 'accept': 'application/json' }  
+    });  
+  
+    const res = response.data;  
+  
+    // siputzx biasanya balikin { status: true, data: [ ...url gambar... ] }  
+    const images = res?.data || res?.result || [];  
+    if (!images.length) {  
+      return ctx.reply('❌ Gambar tidak ketemu. Coba kata kunci lain.');  
+    }  
+  
+    // ambil max 5, acak biar variatif  
+    const pilihan = images.sort(() => Math.random() - 0.5).slice(0, 5);  
+  
+    // replyWithMediaGroup minimal 2 gambar  
+    if (pilihan.length === 1) {  
+      await ctx.replyWithPhoto({ url: pilihan[0] });  
+    } else {  
+      await ctx.replyWithMediaGroup(  
+        pilihan.map((img) => ({ type: 'photo', media: img }))  
+      );  
+    }  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply('⚠️ Gagal ambil gambar Pinterest. Coba lagi.');  
+  }  
+});
+
+
+bot.command('tebakgambar', async (ctx) => {  
+  try {  
+    const chatId = ctx.chat.id;  
+  
+    // kalau masih ada soal aktif di chat ini, jangan mulai baru  
+    if (gameData.has(chatId)) {  
+      return ctx.reply("⚠️ Masih ada soal yang belum kejawab. Ketik jawabannya dulu, atau /nyerah.");  
+    }  
+  
+    const { data } = await axios.get("https://api.siputzx.my.id/api/games/tebakgambar");  
+    const soal = data?.data || data?.result || data;  
+  
+    const gambar   = soal?.img || soal?.soal || soal?.image;  
+    const jawaban  = (soal?.jawaban || soal?.answer || "").toString().toLowerCase().trim();  
+    if (!gambar || !jawaban) throw new Error("Field gambar/jawaban gak ketemu");  
+  
+    // simpen jawaban per chat  
+    gameData.set(chatId, { jawaban, deskripsi: soal?.deskripsi || "" });  
+  
+    await ctx.replyWithPhoto({ url: gambar }, {  
+      caption: "🖼️ *Tebak Gambar!*\nApa nama/benda di gambar ini?\n\nKetik jawabanmu langsung.\nKetik /nyerah kalau mau tau jawabannya.",  
+      parse_mode: "Markdown"  
+    });  
+  
+    // auto-hapus soal setelah 60 detik  
+    setTimeout(() => {  
+      if (gameData.has(chatId)) {  
+        const g = gameData.get(chatId);  
+        gameData.delete(chatId);  
+        ctx.reply(`⏰ Waktu habis! Jawabannya: *${g.jawaban}*`, { parse_mode: "Markdown" });  
+      }  
+    }, 60 * 1000);  
+  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply("⚠️ Error: " + err.message);  
+  }  
+});  
+  
+// nyerah  
+bot.command('nyerah', async (ctx) => {  
+  const chatId = ctx.chat.id;  
+  if (!gameData.has(chatId)) return ctx.reply("Gak ada soal yang aktif.");  
+  const g = gameData.get(chatId);  
+  gameData.delete(chatId);  
+  ctx.reply(`😴 Jawabannya: *${g.jawaban}*`, { parse_mode: "Markdown" });  
+});
+
 bot.command('cuaca', async (ctx) => {  
   try {  
     const kode = ctx.message.text.split(" ").slice(1).join(" ").trim();  
@@ -897,11 +929,6 @@ bot.command('cuaca', async (ctx) => {
 });
 
 
-bot.command('dl', downloadHandler);
-
-bot.command('tourl', async (ctx) => {
- ctx.reply('Silahkan kirim foto untuk menjadikan link otomatis');
-});
 
 bot.command('done', async (ctx) => {
  try {
@@ -1372,52 +1399,41 @@ bot.command("restart", async (ctx) => {
   }
 });
 
-const pinterestHandler = async (ctx) => {  
-  try {  
-    const query = ctx.message.text.split(" ").slice(1).join(" ").trim();  
-  
-    // 1. Kalau kosong, kasih tau formatnya  
-    if (!query) {  
-      return ctx.reply("🔍 Kirim kata kuncinya juga.\n\nContoh:\n/pinterest kucing lucu");  
-    }  
-  
-    // 2. Kasih tau lagi diproses  
-    await ctx.reply("⏳ Lagi nyari di Pinterest...");  
-  
-    // 3. Panggil API pinterest search  
-    // CATATAN: endpoint contoh, verifikasi masih hidup / ganti kalau mati  
-    const { data } = await axios.get(  
-      `https://api.ryzendesu.vip/api/search/pinterest?query=${encodeURIComponent(query)}`  
-    );  
-  
-    // struktur respon beda-beda tiap API, sesuaikan field-nya  
-    const results = data?.data || data?.result || [];  
-    if (!results.length) {  
-      return ctx.reply("⚠️ Gak nemu hasil buat kata kunci itu.");  
-    }  
-  
-    // 4. Ambil beberapa gambar (max 5 biar gak spam) lalu kirim sekaligus  
-    const images = results  
-      .map((item) => (typeof item === "string" ? item : item.url || item.image || item.images_url))  
-      .filter((u) => typeof u === "string")  
-      .slice(0, 5);  
-  
-    if (!images.length) {  
-      return ctx.reply("⚠️ Hasilnya gak ada gambar yang valid.");  
-    }  
-  
-    const mediaGroup = images.map((url) => ({ type: "photo", media: url }));  
-    await ctx.replyWithMediaGroup(mediaGroup);  
-  
-  } catch (err) {  
-    console.error(err);  
-    ctx.reply("⚠️ Gagal nyari di Pinterest, coba lagi.");  
-  }  
-};  
   
 // daftar command + alias  
-bot.command('pinterest', pinterestHandler);  
-bot.command('pin', pinterestHandler);
+bot.command('kompas', async (ctx) => {  
+  try {  
+    await ctx.reply('📰 Sedang mengambil berita Kompas...');  
+  
+    const url = 'https://api.siputzx.my.id/api/berita/kompas';  
+    const response = await axios.get(url, {  
+      headers: { 'accept': 'application/json' }  
+    });  
+  
+    // struktur respon: sesuaikan kalau beda (data / result)  
+    const list = response.data?.data || response.data?.result || [];  
+    if (!list.length) {  
+      return ctx.reply('❌ Gagal ambil berita, coba lagi nanti.');  
+    }  
+  
+    // ambil 5 berita teratas biar gak kepanjangan  
+    const berita = list.slice(0, 5);  
+  
+    let pesan = '📰 *Berita Kompas Terbaru*\n\n';  
+    berita.forEach((b, i) => {  
+      const judul = b.title || b.judul || '(tanpa judul)';  
+      const link  = b.link  || b.url  || '';  
+      pesan += `${i + 1}. *${judul}*\n${link}\n\n`;  
+    });  
+  
+    await ctx.reply(pesan, { parse_mode: 'Markdown' });  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply('⚠️ Error: ' + err.message);  
+  }  
+});
+
+
 
 bot.command('qc', async (ctx) => {
     const text = ctx.message.text.split(' ').slice(1).join(' ');
@@ -1568,7 +1584,24 @@ bot.action('tools', (ctx) =>
   ctx.answerCbQuery('Tools clicked')
 )
 
-// fungsi cek server (CPU + memori)  
+// handler tebakgambar
+bot.on('text', async (ctx) => {  
+  const chatId = ctx.chat.id;  
+  const teks = ctx.message.text.trim();  
+  
+  // abaikan command, dan skip kalau gak ada soal aktif  
+  if (teks.startsWith('/')) return;  
+  if (!gameData.has(chatId)) return;  
+  
+  const g = gameData.get(chatId);  
+  if (teks.toLowerCase() === g.jawaban) {  
+    gameData.delete(chatId);  
+    ctx.reply(`✅ Benar! Jawabannya *${g.jawaban}*.` + (g.deskripsi ? `\n\nℹ️ ${g.deskripsi}` : ""), { parse_mode: "Markdown" });  
+  }  
+});
+
+
+// fungsi cek server (CPU + memori)
 async function cekServer() {  
   const cpu = await getCpuUsage();  
   const totalCore = os.cpus().length;  
@@ -1594,7 +1627,7 @@ bot.launch()
 console.clear();
 console.log(chalk.bgBlack.cyan(`
 -- █▀▀ █░█ █▀▀ █▀█ █▀█ ▀▀█ ▀█▀ --
--- ▀▀█ █░█ █░█ █▀█ █░█ ▄▀    █ --
+-- ▀▀█ █░█ █░█ █▀█ █░█ ▄▀    █  --
 -- ▀▀▀ ▀▀▀ ▀▀▀ ▀░▀ ▀░▀ ▀▀▀ ▀▀▀ --
 `));
     console.log(chalk.bold.white("◆ ") + chalk.bold.magenta("Wecome To Bot Rich Message Special:"));
