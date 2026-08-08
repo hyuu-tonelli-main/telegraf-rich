@@ -24,28 +24,7 @@ const startTime = Math.floor(Date.now() / 1000);
 
 const bot = new Telegraf(process.env.BOT_TOKEN)
 moment.locale('id');            // taruh sekali, deket const bot  
-  
-
-
-async function searchPinsSerp(query, count = 5) {
-  if (!SERPAPI_KEY) throw new Error('SERPAPI_KEY tidak disediakan');
-  const url = `https://serpapi.com/search.json?engine=pinterest&q=${encodeURIComponent(query)}&api_key=${SERPAPI_KEY}&pn=0`;
-  const res = await axios.get(url, { timeout: 15000 });
-  const pins = res.data.pins || [];
-  return pins.slice(0, count).map((p) => {
-    const imageUrl =
-      (p.image && p.image.src) ||
-      (p.images && p.images[0] && (p.images[0].original || p.images[0].url)) ||
-      p.thumbnail ||
-      p.image_url ||
-      null;
-    const title = p.title || p.description || '';
-    const link = p.link || p.url || (p.additional_links && p.additional_links[0]) || '';
-    return { imageUrl, title, link };
-  }).filter(item => item.imageUrl);
-}
-
-
+ 
 
 
 
@@ -894,52 +873,15 @@ bot.command('fitur', async (ctx) => {
 });
 
 
-bot.command('pin', async (ctx) => {
-  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
-  if (!input) {
-    return ctx.reply('Silakan berikan kata-kunci. Contoh: /pin interior minimalis');
-  }
-
-  await ctx.reply(`Mencari pin untuk: "${input}"...`);
-
-  try {
-    if (!SERPAPI_KEY) {
-      return ctx.reply('Pencarian memerlukan SERPAPI_KEY. Tambahkan SERPAPI_KEY di .env atau minta versi scraping.');
-    }
-    const results = await searchPinsSerp(input, 6);
-    if (!results.length) {
-      return ctx.reply('Tidak ditemukan hasil untuk kata-kunci itu.');
-    }
-
-    for (const r of results) {
-      const captionParts = [];
-      if (r.title) captionParts.push(r.title);
-      if (r.link) captionParts.push(r.link);
-      const caption = captionParts.join('\n');
-      try {
-        await ctx.replyWithPhoto({ url: r.imageUrl }, { caption: caption || undefined });
-      } catch (err) {
-        await ctx.reply(`${r.title || 'Pin'}\n${r.link || r.imageUrl}`);
-      }
-    }
-  } catch (err) {
-    console.error(err);
-    ctx.reply('Terjadi kesalahan saat mencari pin. Pastikan SERPAPI_KEY valid, atau minta versi scraping.');
-  }
-});
-
-bot.help((ctx) => {
-  ctx.reply('Perintah tersedia:\n/pin <kata-kunci> — cari pin Pinterest berdasarkan kata-kunci.');
-});
-
-bot.command('ow', async (ctx) => {  
+bot.command('cuaca', async (ctx) => {  
   try {  
     const kota = ctx.message.text.split(" ").slice(1).join(" ").trim();  
     if (!kota) {  
-      return ctx.reply("🌦️ Kirim nama kotanya juga.\n\nContoh:\n/ow Jakarta");  
+      return ctx.reply("🌦️ Kirim nama kotanya juga.\n\nContoh:\n/cuaca Jakarta");  
     }  
   
     await ctx.reply("⏳ Lagi ngecek cuaca...");  
+    
   
     const { data } = await axios.get(  
       "https://api.openweathermap.org/data/2.5/weather",  
@@ -947,8 +889,8 @@ bot.command('ow', async (ctx) => {
         params: {  
           q: kota,  
           appid: process.env.OPENWEATHER_API_KEY,  
-          units: "metric",   // biar suhu Celsius  
-          lang: "id"         // deskripsi bahasa Indonesia  
+          units: "metric",   
+          lang: "id"         
         }  
       }  
     );  
@@ -1023,6 +965,44 @@ bot.command('pinterest', async (ctx) => {
   }  
 });
 
+bot.command('tekateki', async (ctx) => {  
+  try {  
+    const chatId = ctx.chat.id;  
+  
+    // kalau masih ada soal aktif di chat ini, jangan mulai baru  
+    if (gameData.has(chatId)) {  
+      return ctx.reply("⚠️ Masih ada soal yang belum kejawab. Ketik jawabannya dulu, atau /nyerah.");  
+    }  
+  
+    const { data } = await axios.get("https://api.siputzx.my.id/api/games/tekateki");  
+    const soal = data?.data || data?.result || data;  
+  
+    const pertanyaan = soal?.soal || soal?.question || soal?.pertanyaan;  
+    const jawaban    = (soal?.jawaban || soal?.answer || "").toString().toLowerCase().trim();  
+    if (!pertanyaan || !jawaban) throw new Error("Field soal/jawaban gak ketemu");  
+  
+    // simpen jawaban per chat (dipakai bersama handler bot.on('text'))  
+    gameData.set(chatId, { jawaban, deskripsi: "" });  
+  
+    await ctx.reply(  
+      `🧩 *Teka-Teki!*\n\n${pertanyaan}\n\nKetik jawabanmu langsung.\nKetik /nyerah kalau mau tau jawabannya.`,  
+      { parse_mode: "Markdown" }  
+    );  
+  
+    // auto-hapus soal setelah 60 detik  
+    setTimeout(() => {  
+      if (gameData.has(chatId)) {  
+        const g = gameData.get(chatId);  
+        gameData.delete(chatId);  
+        ctx.reply(`⏰ Waktu habis! Jawabannya: *${g.jawaban}*`, { parse_mode: "Markdown" });  
+      }  
+    }, 60 * 1000);  
+  
+  } catch (err) {  
+    console.error(err);  
+    ctx.reply("⚠️ Error: " + err.message);  
+  }  
+});
 
 bot.command('tebakgambar', async (ctx) => {  
   try {  
@@ -1071,62 +1051,6 @@ bot.command('nyerah', async (ctx) => {
   gameData.delete(chatId);  
   ctx.reply(`😴 Jawabannya: *${g.jawaban}*`, { parse_mode: "Markdown" });  
 });
-
-bot.command('cuaca', async (ctx) => {  
-  try {  
-    const kode = ctx.message.text.split(" ").slice(1).join(" ").trim();  
-  
-    // 1. Kalau kosong, kasih tau formatnya  
-    if (!kode) {  
-      return ctx.reply(  
-        "🌦️ Kirim KODE WILAYAH (adm4) BMKG.\n\n" +  
-        "Contoh:\n/cuaca 31.71.03.1001\n\n" +  
-        "Cari kode wilayah lu di:\nhttps://kodewilayah.id"  
-      );  
-    }  
-  
-    // 2. Panggil API BMKG (sama pola kayak /gempa: fetch -> res.json())  
-    const res = await fetch(  
-      `https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=${encodeURIComponent(kode)}`  
-    );  
-    const data = await res.json();  
-  
-    // 3. Ambil lokasi + prakiraan pertama  
-    const lokasi = data?.lokasi;  
-    const cuacaList = data?.data?.[0]?.cuaca?.flat();   // array prakiraan per jam  
-    if (!lokasi || !cuacaList || cuacaList.length === 0) {  
-      return ctx.reply("⚠️ Data cuaca gak ketemu. Cek lagi kode wilayahnya (adm4).");  
-    }  
-  
-    const now = cuacaList[0];   // prakiraan terdekat  
-  
-    // 4. Tampilin pakai HTML table (sama kayak /gempa)  
-    const msg = new HTML();  
-    msg.heading(1, `🌦️ Prakiraan Cuaca (BMKG)`);  
-    msg.table(  
-      [  
-        ['Informasi Cuaca'],  
-        ['Wilayah',    `${lokasi.desa}, ${lokasi.kecamatan}`],  
-        ['Kota/Kab',   `${lokasi.kotkab}, ${lokasi.provinsi}`],  
-        ['Waktu',      `${now.local_datetime}`],  
-        ['Cuaca',      `${now.weather_desc}`],  
-        ['Suhu',       `${now.t}°C`],  
-        ['Kelembapan', `${now.hu}%`],  
-        ['Angin',      `${now.ws} km/j (${now.wd})`],  
-        ['Jarak Pandang', `${now.vs_text || '-'}`]  
-      ],  
-      { bordered: true, striped: true, hasHeader: true }  
-    )  
-    .pullQuote(HTML.italic('"Powered by Suganzi."'), 'Gallagher')  
-    .build();  
-  
-    await ctx.sendRichMessage(msg.build());  
-  } catch (err) {  
-    console.error(err);  
-    ctx.reply("⚠️ Gagal ambil data cuaca BMKG.");  
-  }  
-});
-
 
 
 bot.command('done', async (ctx) => {
@@ -1835,7 +1759,7 @@ bot.launch()
 console.clear();
 console.log(chalk.bgBlack.cyan(`
 -- █▀▀ █░█ █▀▀ █▀█ █▀█ ▀▀█ ▀█▀ --
--- ▀▀█ █░█ █░█ █▀█ █░█ ▄▀    █  --
+-- ▀▀█ █░█ █░█ █▀█ █░█ ▄▀   █   --
 -- ▀▀▀ ▀▀▀ ▀▀▀ ▀░▀ ▀░▀ ▀▀▀ ▀▀▀ --
 `));
     console.log(chalk.bold.white("◆ ") + chalk.bold.magenta("Wecome To Bot Rich Message Special:"));
