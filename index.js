@@ -348,8 +348,8 @@ const tiktokHandler = async (ctx) => {
   
     // 3. Panggil API flowfalcon  
     const { data } = await axios.get(  
-      `"https://api.siputzx.my.id/api/d/tiktok/v2?url=${encodeURIComponent(url)}`  
-    );  
+  `https://api.siputzx.my.id/api/d/tiktok/v2?url=${encodeURIComponent(url)}`
+);  
   
     // 4. Ambil field video + caption (defensif, sesuaikan setelah cek JSON asli)  
     const r        = data?.result || data?.data || data;  
