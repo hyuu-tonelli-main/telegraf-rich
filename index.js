@@ -27,6 +27,29 @@ moment.locale('id');            // taruh sekali, deket const bot
   
 
 
+async function searchPinsSerp(query, count = 5) {
+  if (!SERPAPI_KEY) throw new Error('SERPAPI_KEY tidak disediakan');
+  const url = `https://serpapi.com/search.json?engine=pinterest&q=${encodeURIComponent(query)}&api_key=${SERPAPI_KEY}&pn=0`;
+  const res = await axios.get(url, { timeout: 15000 });
+  const pins = res.data.pins || [];
+  return pins.slice(0, count).map((p) => {
+    const imageUrl =
+      (p.image && p.image.src) ||
+      (p.images && p.images[0] && (p.images[0].original || p.images[0].url)) ||
+      p.thumbnail ||
+      p.image_url ||
+      null;
+    const title = p.title || p.description || '';
+    const link = p.link || p.url || (p.additional_links && p.additional_links[0]) || '';
+    return { imageUrl, title, link };
+  }).filter(item => item.imageUrl);
+}
+
+
+
+
+
+
 
 bot.use(async (ctx, next) => {  
   const msg = ctx.message;  
@@ -851,9 +874,9 @@ bot.command('tt', tiktokHandler);
 bot.command('dl', downloadHandler);
 bot.command('tourl', async (ctx) => {
  ctx.reply('Silahkan kirim foto untuk menjadikan link otomatis');
-bot.command('convert', convertHandler);  
-bot.command('totelegraf', convertHandler); // alias
 });
+bot.command('convert', convertHandler);
+bot.command('totelegraf', convertHandler); // alias
 
 //=======All Fitur========//
 bot.command('fitur', async (ctx) => {
@@ -868,6 +891,45 @@ bot.command('fitur', async (ctx) => {
     ctx.reply("⚠️ Failed.");
   }
 
+});
+
+
+bot.command('pin', async (ctx) => {
+  const input = ctx.message.text.split(' ').slice(1).join(' ').trim();
+  if (!input) {
+    return ctx.reply('Silakan berikan kata-kunci. Contoh: /pin interior minimalis');
+  }
+
+  await ctx.reply(`Mencari pin untuk: "${input}"...`);
+
+  try {
+    if (!SERPAPI_KEY) {
+      return ctx.reply('Pencarian memerlukan SERPAPI_KEY. Tambahkan SERPAPI_KEY di .env atau minta versi scraping.');
+    }
+    const results = await searchPinsSerp(input, 6);
+    if (!results.length) {
+      return ctx.reply('Tidak ditemukan hasil untuk kata-kunci itu.');
+    }
+
+    for (const r of results) {
+      const captionParts = [];
+      if (r.title) captionParts.push(r.title);
+      if (r.link) captionParts.push(r.link);
+      const caption = captionParts.join('\n');
+      try {
+        await ctx.replyWithPhoto({ url: r.imageUrl }, { caption: caption || undefined });
+      } catch (err) {
+        await ctx.reply(`${r.title || 'Pin'}\n${r.link || r.imageUrl}`);
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    ctx.reply('Terjadi kesalahan saat mencari pin. Pastikan SERPAPI_KEY valid, atau minta versi scraping.');
+  }
+});
+
+bot.help((ctx) => {
+  ctx.reply('Perintah tersedia:\n/pin <kata-kunci> — cari pin Pinterest berdasarkan kata-kunci.');
 });
 
 bot.command('ow', async (ctx) => {  
@@ -1110,7 +1172,7 @@ Minimal isi *nama barang* dan *harga*.
   const user = ctx.from;
   const msg = new HTML()
   msg.heading(1, "TRANSAKSI BERHASIL")
-  .divider
+  .divider()
   msg.table(
   [
      ["", ""],
@@ -1345,7 +1407,7 @@ bot.command('cekmiskin', async (ctx) => {
   const msg = new HTML()
    msg.table(
    [
-     ['Hasil Cek Miskinl'],
+     ['Hasil Cek Miskin'],
      [ 
        '<b>Nama</b>',
        `<b>${user.first_name || '-'}  ${user.last_name || ""}</b>`
